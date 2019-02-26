@@ -87,11 +87,11 @@ class GroupLst:
                     self.cost = self.cost + self.graph.nodes[A].nbrs[nbr]
 
 def data_load(fn):
-
+    # Open file and read its contents
     with open(fn) as f:
         content = f.readlines()
         f.close()
-
+    # Extract the number of cells and nets
     num_cells, num_nets = int(content[0][:-1]), int(content[1][:-1])
     graph = Graph()
 
@@ -101,11 +101,12 @@ def data_load(fn):
 
         # skip last row b/c it's a return char
         for row in content[2:-1]:
+            # For each row, add the edge to the graph
             nodes = row.split(" ")
             if len(nodes) == 1:
                 edge = [int(nodes[0][:-1])]  # remove the newline char
             else:
-                edge = [int(nodes[0]), int(nodes[1][:-1])]  # In 1st entry, remove the newline char
+                edge = [int(nodes[0]), int(nodes[1][:-1])]  #remove the newline char
 
             graph.add_edge(edge)
     else:
@@ -116,7 +117,7 @@ def data_load(fn):
             if len(nodes) == 1:
                 edge = [int(nodes[0][:-1])] # remove the newline char
             else:
-                edge = [int(nodes[0]), int(nodes[1])]  # In 1st entry, remove the newline char
+                edge = [int(nodes[0]), int(nodes[1])]
 
             graph.add_edge(edge)
 

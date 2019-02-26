@@ -7,31 +7,32 @@ import os
 import matplotlib.pyplot as plt
 import sys
 import argparse
+from pympler import classtracker
 
-
-def acceptMove(delCost, T, num_cells, boltz_arr):
+def acceptMove(delCost, T, num_cells):
     #Logic to accept a move
     if delCost < 0:
         #If cost improves, accept
-        boltz_arr.append(0)  # List is passed by reference
-        return True
+        return 0, True
     else:
         #Compute the boltz constant, scaled by the number of cells.
         boltz = math.exp((-(delCost*num_cells))/(T))
-        boltz_arr.append(boltz)
-
         r = random.uniform(0, 1)  # Pick a random number between 0 and 1.
         #Probabilstically determine if the move should be accepted.
         if r < boltz:
-            return True
+            return boltz, True
         else:
-            return False
+            return boltz, False
 
 def coolDown(T, params):
     # Reduce T by a factor of Trate
     return T * params["Trate"]
 
+
 def simulatedAnnealing(graph, num_cells, params, fn):
+    cltr = classtracker.ClassTracker()
+    cltr.track_class(GroupLst)  # Follow the memory size of the graph data struct.
+
     # Instantiate GroupLst objects
     curSol, nextSol = GroupLst(graph, num_cells), GroupLst(graph, num_cells)
     bestSol, bestCost = list(curSol.V), curSol.cost
@@ -56,8 +57,8 @@ def simulatedAnnealing(graph, num_cells, params, fn):
             nextSol.V, nextSol.cost = list(curSol.V), curSol.cost
             nextSol.perturb()  # Swap two random cells and update the cost.
             delCost = nextSol.cost - curSol.cost
-
-            if acceptMove(delCost, T, num_cells, boltz_arr):
+            boltz, accept = acceptMove(delCost, T, num_cells)
+            if accept:
                 #If the move is accepted, copy nextSol back into curSol
                 curSol.V, curSol.cost = list(nextSol.V), nextSol.cost
                 num_accepted_moves += 1
@@ -66,16 +67,17 @@ def simulatedAnnealing(graph, num_cells, params, fn):
                 # If curSol is the best solution seen so far, upate bestSol.
                 bestSol, bestCost = list(curSol.V), curSol.cost
 
-            # Update graph data
-            iter_arr.append(iter_cntr)
-            t2_arr.append(T)
+
             iter_cntr += 1
 
-        # Update graph data
+        # Update graph data. Only once per temp to save space
+        iter_arr.append(iter_cntr)
+        t2_arr.append(T)
         temp_arr.append(T)
         cutset_arr.append(curSol.cost)
         best_cutset_arr.append(bestCost)
         nam_arr.append(num_accepted_moves)
+        boltz_arr.append(boltz)
         tmp_cntr += 1
 
         if tmp_cntr % print_skip == 0:
@@ -121,8 +123,12 @@ def simulatedAnnealing(graph, num_cells, params, fn):
     fig.set_size_inches(6, 4)
     fig.savefig("Images/{}_NAM_v_T.png".format(fn), dpi=200)
 
-    print("Best Cost: {}, temp iteration {}".format(bestCost, tmp_cntr))
+    print("\n\nBest Cost: {}, temp iteration {}".format(bestCost, tmp_cntr))
     print("Total Time {:0.3f} seconds".format(time.time()-total_time))
+
+    cltr.create_snapshot()
+    cltr.stats.print_summary()  #display the size of the instatiated GroupLst data structs
+
     return bestSol, bestCost
 
 
@@ -131,7 +137,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', type=str, default="bench_2.net",
                         help='What is the input filename?')
-    parser.add_argument('-o', type=str, default="R_2.net",
+    parser.add_argument('-o', type=str, default="R_2",
                         help='What is the output filename?')
     args = parser.parse_args()
 
