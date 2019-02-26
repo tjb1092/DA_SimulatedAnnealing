@@ -1,11 +1,9 @@
 from data_handler  import data_load, GroupLst, writeResults
 import math
 import random
-import copy
 import time
 import os
 import matplotlib.pyplot as plt
-import sys
 import argparse
 from pympler import classtracker
 
